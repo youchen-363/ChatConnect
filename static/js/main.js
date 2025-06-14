@@ -283,7 +283,7 @@ const mainApp = {
         const response = await fetch('/api/insult', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ context, target, tone })
+            body: JSON.stringify({ situation: context, target, tone })
         });
         const data = await response.json();
         const insult = data.insult || 'No insult generated.';

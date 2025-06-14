@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
+import random
 
 app = Flask(__name__, static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_v3.db'
@@ -132,15 +133,15 @@ def logout():
 @app.route('/api/insult', methods=['POST'])
 def insult():
     data = request.json
-    situation = data.get('situation', '')
+    context = data.get('context', '')
     # Replace this with your AI logic!
     # For now, just return a random insult based on the situation
     insults = [
-        f"Wow, that's a new low even for you in this situation: {situation}",
-        f"Only you could mess up '{situation}' this badly.",
-        f"Is '{situation}' your superpower? Because it's not helping.",
-        f"Next time you face '{situation}', try not to embarrass yourself.",
-        f"'{situation}' called, it wants its dignity back."
+        f"Wow, that's a new low even for you in this situation: {context}",
+        f"Only you could mess up '{context}' this badly.",
+        f"Is '{context}' your superpower? Because it's not helping.",
+        f"Next time you face '{context}', try not to embarrass yourself.",
+        f"'{context}' called, it wants its dignity back."
     ]
     insult = random.choice(insults)
     return jsonify({'insult': insult})
