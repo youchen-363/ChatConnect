@@ -26,8 +26,14 @@ class Message(db.Model):
     text = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+# Initialize database only if it doesn't exist
 with app.app_context():
-    db.create_all()
+    if not os.path.exists('chatconnect_v3.db'):
+        db.create_all()
+        # Create admin user if it doesn't exist
+        admin = User(username='admin', password='admin', is_admin=True)
+        db.session.add(admin)
+        db.session.commit()
 
 @app.route('/')
 def root():

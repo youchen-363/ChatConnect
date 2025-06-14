@@ -183,15 +183,24 @@ const mainApp = {
     },
 
     showFunMenu() {
+        // Remove any existing fun menu
+        const existingFunMenu = document.querySelector('.fun-menu');
+        if (existingFunMenu) existingFunMenu.remove();
+
         const funMenu = document.createElement('div');
+        funMenu.className = 'fun-menu';
         funMenu.style.position = 'fixed';
-        funMenu.style.top = '20px';
-        funMenu.style.left = '20px';
+        funMenu.style.top = '50%';
+        funMenu.style.left = '50%';
+        funMenu.style.transform = 'translate(-50%, -50%)';
         funMenu.style.backgroundColor = 'white';
         funMenu.style.padding = '20px';
         funMenu.style.borderRadius = '8px';
         funMenu.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
         funMenu.style.zIndex = '1000';
+        funMenu.style.maxHeight = '80vh';
+        funMenu.style.overflowY = 'auto';
+        funMenu.style.width = '400px';
 
         funMenu.innerHTML = `
             <h3>Fun Features</h3>
@@ -224,7 +233,27 @@ const mainApp = {
             <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
         `;
 
+        // Create overlay for click-outside behavior
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        overlay.style.zIndex = '999';
+        overlay.onclick = () => {
+            overlay.remove();
+            funMenu.remove();
+        };
+
+        document.body.appendChild(overlay);
         document.body.appendChild(funMenu);
+
+        // Prevent clicks inside the menu from closing it
+        funMenu.onclick = (e) => {
+            e.stopPropagation();
+        };
     },
 
     spamInterval: null,
