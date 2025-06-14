@@ -98,4 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('button[onclick="auth.login()"]').onclick = () => auth.login();
     document.querySelector('button[onclick="auth.register()"]').onclick = () => auth.register();
     document.querySelector('button[onclick="auth.logout()"]').onclick = () => auth.logout();
-}); 
+});
+
+function sendMessage() {
+    fetch('https://chatconnect-tug4.onrender.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: auth.currentUser, to: mainApp.selectedContact, text: messageInput.value })
+    })
+    .then(res => res.json())
+    .then(() => {
+        messageInput.value = '';
+        fetchMessages(); // Immediately refresh messages
+    });
+} 
