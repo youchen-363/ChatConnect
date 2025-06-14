@@ -308,7 +308,7 @@ fetch(apiUrl+'/api/login', {
     // Store the session in localStorage
     localStorage.setItem('chatconnect_user', data.username);
     // Redirect to main app
-    window.location.href = 'index.html';
+    window.location.replace('./index.html');
   } else {
     // Handle login error
     alert(data.error || 'Login failed');

@@ -1,0 +1,14 @@
+# Redirect all requests to auth.html if not logged in
+RewriteEngine On
+
+# If the request is for a file or directory that exists, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# If the user is not logged in, redirect to auth.html
+# (You can't check localStorage/sessionStorage in .htaccess, so this is only for direct URL access)
+# For SPA-style fallback (e.g., React, Vue, or your app):
+RewriteRule ^index\.html$ index.html [L]
+RewriteRule ^auth\.html$ auth.html [L]
+RewriteRule ^$ auth.html [L]

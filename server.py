@@ -4,8 +4,8 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_new.db'
+app = Flask(__name__, static_folder='static')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_v3.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
@@ -29,12 +29,16 @@ with app.app_context():
     db.create_all()
 
 @app.route('/')
-def index():
-    return "ChatConnect API is running!"
+def root():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/auth.html')
+def auth():
+    return send_from_directory(app.static_folder, 'auth.html')
 
 @app.route('/<path:path>')
 def static_proxy(path):
-    return send_from_directory('static', path)
+    return send_from_directory(app.static_folder, path)
 
 @app.route('/api/register', methods=['POST'])
 def register():
