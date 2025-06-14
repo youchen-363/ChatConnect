@@ -2,9 +2,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_new.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
@@ -123,17 +124,6 @@ def logout():
         user.is_online = False
         db.session.commit()
     return jsonify({'success': True})
-
-@app.route('/api/routes')
-def list_routes():
-    import urllib
-    output = []
-    for rule in app.url_map.iter_rules():
-        methods = ','.join(rule.methods)
-        line = urllib.parse.unquote(f"{rule.endpoint}: {rule.rule} [{methods}]")
-        output.append(line)
-    return '<br>'.join(sorted(output))
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 
