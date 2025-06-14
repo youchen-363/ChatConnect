@@ -211,6 +211,16 @@ const mainApp = {
                 <button onclick="mainApp.startSpamImages()">Start Image Spam</button>
                 <button onclick="mainApp.stopSpamImages()">Stop Image Spam</button>
             </div>
+            <div style="margin-bottom: 15px;">
+                <h4>AI Insult Generator</h4>
+                <label for="insult-context">What happened?</label>
+                <input id="insult-context" type="text" placeholder="Describe the situation..." style="width:200px; margin-left:5px; margin-bottom:5px;"><br>
+                <label for="insult-target">Who is this insult aimed at?</label>
+                <input id="insult-target" type="text" placeholder="Target user..." style="width:200px; margin-left:5px; margin-bottom:5px;"><br>
+                <label for="insult-tone">Describe the style/persona:</label>
+                <input id="insult-tone" type="text" placeholder="e.g. sarcastic, muscular..." style="width:200px; margin-left:5px; margin-bottom:5px;"><br>
+                <button onclick="mainApp.generateAndSendInsult()">Generate Insult & Send</button>
+            </div>
             <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
         `;
 
@@ -255,6 +265,38 @@ const mainApp = {
 
     stopSpamImages() {
         // Implementation for stopping image spam
+    },
+
+    generateAndSendInsult: async function() {
+        const context = document.getElementById('insult-context').value.trim();
+        const target = document.getElementById('insult-target').value.trim();
+        const tone = document.getElementById('insult-tone').value.trim();
+        if (!this.selectedContact) {
+            alert('Please select a contact to send the insult!');
+            return;
+        }
+        if (!context || !target || !tone) {
+            alert('Please fill in all fields for the AI insult.');
+            return;
+        }
+        // Call your backend to generate the insult
+        const response = await fetch('/api/insult', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ context, target, tone })
+        });
+        const data = await response.json();
+        const insult = data.insult || 'No insult generated.';
+        const currentUser = localStorage.getItem('chatconnect_user');
+        // Send the insult as a message
+        fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: currentUser, to: this.selectedContact, text: insult })
+        }).then(() => {
+            this.displayMessages();
+            alert('Insult sent!');
+        });
     }
 };
 

@@ -129,5 +129,21 @@ def logout():
         db.session.commit()
     return jsonify({'success': True})
 
+@app.route('/api/insult', methods=['POST'])
+def insult():
+    data = request.json
+    situation = data.get('situation', '')
+    # Replace this with your AI logic!
+    # For now, just return a random insult based on the situation
+    insults = [
+        f"Wow, that's a new low even for you in this situation: {situation}",
+        f"Only you could mess up '{situation}' this badly.",
+        f"Is '{situation}' your superpower? Because it's not helping.",
+        f"Next time you face '{situation}', try not to embarrass yourself.",
+        f"'{situation}' called, it wants its dignity back."
+    ]
+    insult = random.choice(insults)
+    return jsonify({'insult': insult})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 
