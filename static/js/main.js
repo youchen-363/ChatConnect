@@ -12,35 +12,26 @@ const mainApp = {
     chatMessages: document.getElementById('chat-messages'),
     messageInput: document.getElementById('message-text'),
 
-    updateContactsList(usersCache) {
-        // If usersCache is not provided, fetch from API
-        if (!usersCache) {
-            fetch(apiUrl + '/api/users')
-                .then(res => res.json())
-                .then(users => {
-                    this.updateContactsList(users);
+    updateContactsList() {
+        contactsList.innerHTML = '';
+        const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
+        const selectedContact = localStorage.getItem('chatconnect_selectedContact');
+        fetch(apiUrl + '/api/users')
+            .then(res => res.json())
+            .then(users => {
+                users.forEach(username => {
+                    if (isAdmin || username !== 'admin') {
+                        const contactDiv = document.createElement('div');
+                        contactDiv.className = 'contact-item';
+                        if (username === selectedContact) {
+                            contactDiv.classList.add('selected');
+                        }
+                        contactDiv.textContent = username;
+                        contactDiv.onclick = () => this.selectContact(username);
+                        contactsList.appendChild(contactDiv);
+                    }
                 });
-            return;
-        }
-        this.contactsList.innerHTML = '';
-        // Get search value
-        const searchInput = document.getElementById('contact-search');
-        const searchValue = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        usersCache.forEach(user => {
-            if (user !== 'admin' && (!searchValue || user.toLowerCase().includes(searchValue))) {
-                const contactDiv = document.createElement('div');
-                contactDiv.className = 'contact-item';
-                contactDiv.textContent = user;
-                if (user === this.selectedContact) {
-                    contactDiv.classList.add('selected');
-                }
-                contactDiv.onclick = () => {
-                    this.selectContact(user);
-                    this.updateContactsList(usersCache);
-                };
-                this.contactsList.appendChild(contactDiv);
-            }
-        });
+            });
     },
 
     selectContact(username) {
@@ -48,11 +39,13 @@ const mainApp = {
         localStorage.setItem('chatconnect_selectedContact', username);
         this.updateChatHeader();
         this.displayMessages();
+        this.updateContactsList();
     },
 
     updateChatHeader() {
         // Update the chat header bar
         const chatHeader = document.getElementById('chat-header');
+        console.log('Selected contact:', this.selectedContact);
         if (chatHeader) {
             if (this.selectedContact) {
                 chatHeader.textContent = this.selectedContact;
@@ -71,9 +64,8 @@ const mainApp = {
     },
 
     displayMessages() {
-        console.log('Displaying messages for:', this.selectedContact);
+        console.log('Displaying messages for:', this.selectedContact), ' from ', currentUser;
         this.chatMessages.innerHTML = '';
-        const currentUser = localStorage.getItem('chatconnect_user');
         if (!this.selectedContact || !currentUser) return;
         fetch(`${apiUrl}/api/messages?user1=${currentUser}&user2=${this.selectedContact}`)
             .then(res => res.json())
@@ -92,7 +84,6 @@ const mainApp = {
 
     sendMessage() {
         const text = this.messageInput.value.trim();
-        const currentUser = localStorage.getItem('chatconnect_user');
         if (!text || !this.selectedContact || !currentUser) {
             alert('Please select a contact and enter a message');
             return;
@@ -100,7 +91,7 @@ const mainApp = {
         fetch(apiUrl + '/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: currentUser, to: this.selectedContact, text })
+            body: JSON.stringify({ from: currentUser, to: this.selectedContact, text : text, timestamp: new Date().toISOString() })
         })
         .then(res => res.json())
         .then(() => {
@@ -136,14 +127,13 @@ const mainApp = {
         if (existingFunButton) existingFunButton.remove();
 
         // Add fun button for all logged-in users
-        const user = localStorage.getItem('chatconnect_user');
-        if (user) {
+        if (currentUser) {
             const funButton = document.createElement('button');
             funButton.textContent = 'Fun Features';
             funButton.className = 'fun-button';
             funButton.style.position = 'fixed';
             funButton.style.bottom = '20px';
-            funButton.style.left = user === 'admin' ? '150px' : '20px';
+            funButton.style.left = currentUser === 'admin' ? '150px' : '20px';
             funButton.style.zIndex = '1000';
             funButton.onclick = this.showFunMenu;
             document.body.appendChild(funButton);
@@ -182,14 +172,27 @@ const mainApp = {
             });
     },
 
+    insultAbortController: null,
+    isStopSpam: false,
+
     showFunMenu() {
-        // Remove any existing fun menu
+        // Remove any existing fun menu and overlay
         const existingFunMenu = document.querySelector('.fun-menu');
+        const existingOverlay = document.querySelector('.fun-menu-overlay');
         if (existingFunMenu) existingFunMenu.remove();
+        if (existingOverlay) existingOverlay.remove();
+
+        // Find the chat area container
+        const chatArea = document.querySelector('.chat-area');
+        if (!chatArea) {
+            alert('Chat area not found!');
+            return;
+        }
+        chatArea.style.position = 'relative'; // Ensure chat area is relative for absolute children
 
         const funMenu = document.createElement('div');
         funMenu.className = 'fun-menu';
-        funMenu.style.position = 'fixed';
+        funMenu.style.position = 'absolute';
         funMenu.style.top = '50%';
         funMenu.style.left = '50%';
         funMenu.style.transform = 'translate(-50%, -50%)';
@@ -201,6 +204,7 @@ const mainApp = {
         funMenu.style.maxHeight = '80vh';
         funMenu.style.overflowY = 'auto';
         funMenu.style.width = '400px';
+        funMenu.style.position = 'absolute';
 
         funMenu.innerHTML = `
             <h3>Fun Features</h3>
@@ -213,7 +217,7 @@ const mainApp = {
                 <input id="spam-text" type="text" placeholder="Enter spam message..." style="width:200px; margin-left:5px; margin-bottom:5px;">
                 <br>
                 <button onclick="mainApp.startSpamMessages()">Start Spam</button>
-                <button onclick="mainApp.stopSpamMessages()">Stop Spam</button>
+                <button onclick="mainApp.stopSpamMessages()" style="background: #e53935; color: #fff; margin-left: 10px;">Stop Spam</button>
             </div>
             <div style="margin-bottom: 15px;">
                 <h4>AI Insult Generator</h4>
@@ -223,35 +227,35 @@ const mainApp = {
                 <input id="insult-target" type="text" placeholder="Target user..." style="width:200px; margin-left:5px; margin-bottom:5px;"><br>
                 <label for="insult-tone">Describe the style/persona:</label>
                 <input id="insult-tone" type="text" placeholder="e.g. sarcastic, muscular..." style="width:200px; margin-left:5px; margin-bottom:5px;"><br>
-                <button onclick="mainApp.generateAndSendInsult()">Generate Insult & Send</button>
+                <button id="generate-insult-btn" onclick="mainApp.generateAndSendInsult()">Generate Insult & Send</button>
+                <button id="stop-insult-btn" onclick="mainApp.stopGenerateInsult()" style="margin-left: 10px; background: #e53935; color: #fff;">Stop Generate</button>
             </div>
-            <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
+            <button onclick="mainApp.closeFunMenu()" style="margin-top: 10px; background: #e53935; color: #fff;">Close</button>
         `;
 
         // Create overlay for click-outside behavior
         const overlay = document.createElement('div');
-        overlay.style.position = 'fixed';
+        overlay.className = 'fun-menu-overlay';
+        overlay.style.position = 'absolute';
         overlay.style.top = '0';
         overlay.style.left = '0';
         overlay.style.width = '100%';
         overlay.style.height = '100%';
         overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
         overlay.style.zIndex = '999';
-        overlay.onclick = () => {
-            overlay.remove();
-            funMenu.remove();
-        };
+        overlay.onclick = () => this.closeFunMenu();
 
-        document.body.appendChild(overlay);
-        document.body.appendChild(funMenu);
-
-        // Prevent clicks inside the menu from closing it
-        funMenu.onclick = (e) => {
-            e.stopPropagation();
-        };
+        chatArea.appendChild(overlay);
+        chatArea.appendChild(funMenu);
     },
 
-    spamInterval: null,
+    closeFunMenu() {
+        const funMenu = document.querySelector('.fun-menu');
+        const overlay = document.querySelector('.fun-menu-overlay');
+        if (funMenu) funMenu.remove();
+        if (overlay) overlay.remove();
+    },
+
     startSpamMessages() {
         const countInput = document.getElementById('spam-count');
         let count = parseInt(countInput ? countInput.value : '5', 10);
@@ -268,15 +272,15 @@ const mainApp = {
             return;
         }
 
-        const currentUser = localStorage.getItem('chatconnect_user');
+        this.isStopSpam = false;
+
         let sentCount = 0;
-
-        const sendNextMessage = async () => {
-            if (sentCount >= count) {
-                return;
-            }
-
-            try {
+        const sendSpam = async () => {
+            for (let i = 0; i < count; i++) {
+                if (this.isStopSpam) {
+                    if (typeof solvePuzzle === 'function') solvePuzzle();
+                    break;
+                }
                 await fetch(apiUrl + '/api/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -286,26 +290,33 @@ const mainApp = {
                         text: `${spamText}` 
                     })
                 });
-                
                 sentCount++;
-                this.displayMessages(); // Update display after each message
-                
-                if (sentCount < count) {
-                    setTimeout(sendNextMessage, 100); // Send next message after 100ms
-                }
-            } catch (error) {
-                console.error('Error sending spam message:', error);
+                this.displayMessages();
             }
         };
-
-        sendNextMessage();
+        sendSpam();
     },
+
     stopSpamMessages() {
-        // This function is now just a placeholder since we're using setTimeout
-        console.log('Spam messages stopped');
+        this.isStopSpam = true;
     },
 
-    generateAndSendInsult: async function() {
+    stopGenerateInsult() {
+        if (this.insultAbortController) {
+            this.insultAbortController.abort();
+            this.insultAbortController = null;
+        }
+        // Optionally, remove spinner if present
+        const loadingDiv = document.querySelector('.ai-insult-loading');
+        if (loadingDiv) loadingDiv.remove();
+        const style = document.getElementById('ai-insult-spinner-style');
+        if (style) style.remove();
+        // Re-enable the generate button
+        const genBtn = document.getElementById('generate-insult-btn');
+        if (genBtn) genBtn.disabled = false;
+    },
+
+    async generateAndSendInsult() {
         const context = document.getElementById('insult-context').value.trim();
         const target = document.getElementById('insult-target').value.trim();
         const tone = document.getElementById('insult-tone').value.trim();
@@ -317,24 +328,56 @@ const mainApp = {
             alert('Please fill in all fields for the AI insult.');
             return;
         }
-        // Call your backend to generate the insult
-        const response = await fetch('/api/insult', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ situation: context, target, tone })
-        });
-        const data = await response.json();
-        const insult = data.insult || 'No insult generated.';
-        const currentUser = localStorage.getItem('chatconnect_user');
-        // Send the insult as a message
-        fetch('/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: currentUser, to: this.selectedContact, text: insult })
-        }).then(() => {
+        
+        // Setup AbortController
+        this.insultAbortController = new AbortController();
+        const signal = this.insultAbortController.signal;
+
+        try {
+            // Call your backend to generate the insult
+            var response = await fetch('/api/insult', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ context, tone, target }),
+                signal
+            });
+            if (!response.ok) throw new Error('Request failed or aborted');
+            var data = await response.json();
+            const insult = data.insult || 'No insult generated.';
+            console.log(insult);
+            // Send the insult as a message
+            console.log('Sending to /api/messages:', {
+                from: currentUser,
+                to: this.selectedContact,
+                text: `${insult}`
+            });
+            response = sendInsult(insult);
+            /*
+            const response = await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: currentUser, to: this.selectedContact, text: `${insult}`, timestamp: new Date().toISOString() })
+            });*/
+            
             this.displayMessages();
-            alert('Insult sent!');
-        });
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                alert('AI insult generation stopped.');
+            } else {
+                console.error('Error:', error);
+                alert('Failed to generate or send insult. Please try again.');
+            }
+        } 
+        /*
+        finally {
+            // Remove loading spinner
+            if (loadingDiv) loadingDiv.remove();
+            const style = document.getElementById('ai-insult-spinner-style');
+            if (style) style.remove();
+            // Re-enable the generate button
+            if (genBtn) genBtn.disabled = false;
+            this.insultAbortController = null;
+        }*/
     }
 };
 
@@ -356,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(apiUrl + '/api/users')
                 .then(res => res.json())
                 .then(users => {
-                    mainApp.updateContactsList(users);
+                    mainApp.updateContactsList();
                 });
         });
     }
@@ -367,16 +410,15 @@ document.addEventListener('DOMContentLoaded', () => {
     mainApp.updateUIForAdmin();
     mainApp.updateUIForAllUsers();
     // Restore selected contact if exists
-    if (mainApp.selectedContact) {
-        mainApp.updateChatHeader();
-        mainApp.displayMessages();
+    if (localStorage.getItem('chatconnect_selectedContact')) {
+        window.selectedContact = localStorage.getItem('chatconnect_selectedContact');
     }
     const currentUserSpan = document.getElementById('current-user');
     if (currentUserSpan) {
         currentUserSpan.textContent = localStorage.getItem('chatconnect_user') || '';
     }
 });
-
+/*
 fetch(apiUrl+'/api/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -417,3 +459,4 @@ fetch(apiUrl+`/api/messages?user1=${auth.currentUser}&user2=${mainApp.selectedCo
   .then(messages => {
     // Render messages
   }); 
+  */

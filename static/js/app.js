@@ -11,6 +11,7 @@ const contactsList = document.getElementById('contacts-list');
 const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-text');
 
+/*
 // Authentication Functions
 function register() {
     const username = usernameInput.value.trim();
@@ -21,24 +22,31 @@ function register() {
         return;
     }
 
-    if (db.users.some(user => user.username === username)) {
-        alert('Username already exists');
-        return;
-    }
-
-    // Regular users cannot be admins
-    db.users.push({ username, password, isAdmin: false });
-    alert('Registration successful! Please login.');
-    usernameInput.value = '';
-    passwordInput.value = '';
-
-    fetch(apiUrl+'/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(res => res.json())
-    .then(data => { /* handle response */ });
+    // Check if username exists via API
+    fetch(apiUrl + '/api/users')
+        .then(res => res.json())
+        .then(users => {
+            if (users.includes(username)) {
+                alert('Username already exists');
+                return;
+            }
+            // Register user via API
+            fetch(apiUrl + '/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Registration successful! Please login.');
+                    usernameInput.value = '';
+                    passwordInput.value = '';
+                }
+            });
+        });
 }
 
 function login() {
@@ -50,20 +58,28 @@ function login() {
         return;
     }
 
-    fetch(apiUrl+'/api/login', {
+    fetch(apiUrl + '/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
     })
     .then(res => res.json())
-    .then(data => { /* handle response */ });
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            // Set current user in localStorage
+            localStorage.setItem('chatconnect_user', data.username);
+            localStorage.setItem('chatconnect_isAdmin', data.isAdmin);
+            showMainScreen();
+            updateContactsList();
+        }
+    });
 }
 
 function logout() {
-    db.onlineUsers.delete(currentUser);
-    currentUser = null;
-    selectedContact = null;
-    isAdmin = false;
+    localStorage.removeItem('chatconnect_user');
+    localStorage.removeItem('chatconnect_isAdmin');
     showLoginScreen();
 }
 
@@ -76,14 +92,15 @@ function showLoginScreen() {
 function showMainScreen() {
     loginScreen.classList.add('hidden');
     mainScreen.classList.remove('hidden');
-    currentUserSpan.textContent = currentUser;
+    currentUserSpan.textContent = localStorage.getItem('chatconnect_user');
 }
-
+*/
 function updateUIForAdmin() {
     // Remove existing debug button if any
     const existingDebugButton = document.querySelector('.debug-button');
     if (existingDebugButton) existingDebugButton.remove();
 
+    const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
     if (isAdmin) {
         const debugButton = document.createElement('button');
         debugButton.textContent = 'Show Database';
@@ -103,7 +120,8 @@ function updateUIForAllUsers() {
     if (existingFunButton) existingFunButton.remove();
 
     // Add fun button for all logged-in users
-    if (currentUser) {
+    if (localStorage.getItem('chatconnect_user')) {
+        const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
         const funButton = document.createElement('button');
         funButton.textContent = 'Fun Features';
         funButton.className = 'fun-button';
@@ -118,112 +136,135 @@ function updateUIForAllUsers() {
 
 function updateContactsList() {
     contactsList.innerHTML = '';
-    db.users.forEach(user => {
-        // Don't show current user or admin (unless current user is admin)
-        if (user.username !== currentUser && (isAdmin || !user.isAdmin)) {
-            const contactDiv = document.createElement('div');
-            contactDiv.className = `contact-item ${db.onlineUsers.has(user.username) ? 'online' : ''}`;
-            contactDiv.textContent = user.username;
-            contactDiv.onclick = () => selectContact(user.username);
-            contactsList.appendChild(contactDiv);
-        }
-    });
+    const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
+    const selectedContact = localStorage.getItem('chatconnect_selectedContact');
+    fetch(apiUrl + '/api/users')
+        .then(res => res.json())
+        .then(users => {
+            users.forEach(username => {
+                if (isAdmin || username !== 'admin') {
+                    const contactDiv = document.createElement('div');
+                    contactDiv.className = 'contact-item';
+                    if (username === selectedContact) {
+                        contactDiv.classList.add('selected');
+                    }
+                    contactDiv.textContent = username;
+                    contactDiv.onclick = () => selectContact(username);
+                    contactsList.appendChild(contactDiv);
+                }
+            });
+        });
 }
 
 function selectContact(username) {
-    selectedContact = username;
+    localStorage.setItem('chatconnect_selectedContact', username);
+    updateChatHeader();
     displayMessages();
+    updateContactsList();
 }
 
 function displayMessages() {
     chatMessages.innerHTML = '';
-    fetch(apiUrl+`/api/messages?user1=${currentUser}&user2=${selectedContact}`)
-      .then(res => res.json())
-      .then(messages => {
-        messages.forEach(msg => {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${msg.from === currentUser ? 'sent' : 'received'}`;
-            
-            if (msg.image) {
-                const img = document.createElement('img');
-                img.src = msg.image;
-                img.style.maxWidth = '200px';
-                img.style.marginBottom = '5px';
-                messageDiv.appendChild(img);
-            }
-            
-            const textDiv = document.createElement('div');
-            textDiv.textContent = msg.text;
-            messageDiv.appendChild(textDiv);
-            
-            chatMessages.appendChild(messageDiv);
+    const currentUser = localStorage.getItem('chatconnect_user');
+    const selectedContact = localStorage.getItem('chatconnect_selectedContact');
+    if (!currentUser || !selectedContact) return;
+    fetch(apiUrl + `/api/messages?user1=${currentUser}&user2=${selectedContact}`)
+        .then(res => res.json())
+        .then(messages => {
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.from === currentUser ? 'sent' : 'received'}`;
+                if (msg.image) {
+                    const img = document.createElement('img');
+                    img.src = msg.image;
+                    img.style.maxWidth = '200px';
+                    img.style.marginBottom = '5px';
+                    messageDiv.appendChild(img);
+                }
+                const textDiv = document.createElement('div');
+                textDiv.textContent = msg.text;
+                messageDiv.appendChild(textDiv);
+                chatMessages.appendChild(messageDiv);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         });
-
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      });
 }
 
-function sendMessage() {
-    const text = messageInput.value.trim();
+function sendInsult(text) {
+    const currentUser = localStorage.getItem('chatconnect_user');
+    const selectedContact = localStorage.getItem('chatconnect_selectedContact');
     if (!text || !selectedContact) {
         alert('Please select a contact and enter a message');
         return;
     }
-
-    const message = {
-        from: currentUser,
-        to: selectedContact,
-        text,
-        timestamp: new Date().toISOString()
-    };
-
-    fetch(apiUrl+'/api/messages', {
+    fetch(apiUrl + '/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: currentUser, to: selectedContact, text: text })
+    })
+    .then(res => res.json())
+    .then(() => {
+        messageInput.value = '';
+        displayMessages();
     });
+}
 
-    messageInput.value = '';
-    displayMessages();
+function sendMessage() {
+    const text = messageInput.value.trim();
+    const currentUser = localStorage.getItem('chatconnect_user');
+    const selectedContact = localStorage.getItem('chatconnect_selectedContact');
+    if (!text || !selectedContact) {
+        alert('Please select a contact and enter a message');
+        return;
+    }
+    fetch(apiUrl + '/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: currentUser, to: selectedContact, text })
+    })
+    .then(res => res.json())
+    .then(() => {
+        messageInput.value = '';
+        displayMessages();
+    });
 }
 
 // Debug Functions
 function showDatabase() {
+    const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
     if (!isAdmin) {
         alert('Access denied. Admin privileges required.');
         return;
     }
-
-    console.log('=== Database Contents ===');
-    console.log('Users:', db.users);
-    console.log('Messages:', db.messages);
-    console.log('Online Users:', Array.from(db.onlineUsers));
-    
-    // Create a debug window
-    const debugWindow = document.createElement('div');
-    debugWindow.style.position = 'fixed';
-    debugWindow.style.bottom = '20px';
-    debugWindow.style.right = '20px';
-    debugWindow.style.backgroundColor = 'white';
-    debugWindow.style.padding = '20px';
-    debugWindow.style.borderRadius = '8px';
-    debugWindow.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-    debugWindow.style.maxHeight = '400px';
-    debugWindow.style.overflowY = 'auto';
-    debugWindow.style.zIndex = '1000';
-
-    debugWindow.innerHTML = `
-        <h3>Database Contents (Admin View)</h3>
-        <h4>Users:</h4>
-        <pre>${JSON.stringify(db.users, null, 2)}</pre>
-        <h4>Messages:</h4>
-        <pre>${JSON.stringify(db.messages, null, 2)}</pre>
-        <h4>Online Users:</h4>
-        <pre>${JSON.stringify(Array.from(db.onlineUsers), null, 2)}</pre>
-        <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
-    `;
-
-    document.body.appendChild(debugWindow);
+    // Fetch and show users and messages from backend
+    Promise.all([
+        fetch(apiUrl + '/api/users').then(res => res.json()),
+        fetch(apiUrl + '/api/messages?user1=admin&user2=admin').then(res => res.json()),
+        fetch(apiUrl + '/api/online_users').then(res => res.json())
+    ]).then(([users, messages, onlineUsers]) => {
+        const debugWindow = document.createElement('div');
+        debugWindow.style.position = 'fixed';
+        debugWindow.style.bottom = '20px';
+        debugWindow.style.right = '20px';
+        debugWindow.style.backgroundColor = 'white';
+        debugWindow.style.padding = '20px';
+        debugWindow.style.borderRadius = '8px';
+        debugWindow.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+        debugWindow.style.maxHeight = '400px';
+        debugWindow.style.overflowY = 'auto';
+        debugWindow.style.zIndex = '1000';
+        debugWindow.innerHTML = `
+            <h3>Database Contents (Admin View)</h3>
+            <h4>Users:</h4>
+            <pre>${JSON.stringify(users, null, 2)}</pre>
+            <h4>Messages:</h4>
+            <pre>${JSON.stringify(messages, null, 2)}</pre>
+            <h4>Online Users:</h4>
+            <pre>${JSON.stringify(onlineUsers, null, 2)}</pre>
+            <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
+        `;
+        document.body.appendChild(debugWindow);
+    });
 }
 
 // Admin Fun Functions
@@ -277,12 +318,15 @@ function startSpamMessages() {
         const spamMessage = {
             from: currentUser,
             to: selectedContact,
-            text: `${message} (${sentCount + 1}/${count})`,
+            text: `${message}`,
             timestamp: new Date().toISOString()
         };
 
-        db.messages.push(spamMessage);
-        displayMessages();
+        fetch(apiUrl + '/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: currentUser, to: selectedContact, text: spamMessage.text })
+        });
         sentCount++;
     }, 100); // Send message every 500ms
 }
@@ -315,10 +359,13 @@ function startSpamImages() {
                 timestamp: new Date().toISOString()
             };
 
-            db.messages.push(spamMessage);
-            displayMessages();
+            fetch(apiUrl + '/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: currentUser, to: selectedContact, text: spamMessage.text, image: spamMessage.image })
+            });
             sentCount++;
-        }, 500); // Send image every 500ms
+        }, 200); // Send image every 500ms
     };
     
     reader.readAsDataURL(imageInput.files[0]);
@@ -340,29 +387,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+/*
     // Show login screen by default
-    auth.showLoginScreen();
+    auth.showLoginScreen();*/
 });
 
 // Simulate online status changes (for demo purposes)
 setInterval(() => {
-    if (currentUser) {
+    if (localStorage.getItem('chatconnect_user')) {
         updateContactsList();
     }
-}, 5000);
-
-setInterval(() => {
-  fetch(apiUrl+'/api/heartbeat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: currentUser })
-  });
-}, 30000);
-
-fetch(apiUrl+'/api/online_users')
-  .then(res => res.json())
-  .then(onlineUsers => { /* show online users */ });
+}, 10000);
 
 fetch(apiUrl+'/api/users')
   .then(res => res.json())

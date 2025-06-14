@@ -57,7 +57,16 @@ def register():
     user = User(username=data['username'], password=data['password'], is_admin=False)
     db.session.add(user)
     db.session.commit()
-    return jsonify({'success': True})
+    return jsonify({
+        'success': True,
+        'message': {
+        'id': msg.id,
+        'from': msg.from_user,
+        'to': msg.to_user,
+        'text': msg.text,
+        'timestamp': msg.timestamp.isoformat()
+        }
+        })
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -117,16 +126,6 @@ def online_users():
     users = User.query.filter_by(is_online=True).all()
     return jsonify([u.username for u in users])
 
-@app.route('/api/heartbeat', methods=['POST'])
-def heartbeat():
-    data = request.json
-    user = User.query.filter_by(username=data['username']).first()
-    if user:
-        user.last_seen = datetime.utcnow()
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'error': 'User not found'}), 404
-
 @app.route('/api/logout', methods=['POST'])
 def logout():
     data = request.json
@@ -140,16 +139,9 @@ def logout():
 def insult():
     data = request.json
     context = data.get('context', '')
-    # Replace this with your AI logic!
-    # For now, just return a random insult based on the situation
-    insults = [
-        f"Wow, that's a new low even for you in this situation: {context}",
-        f"Only you could mess up '{context}' this badly.",
-        f"Is '{context}' your superpower? Because it's not helping.",
-        f"Next time you face '{context}', try not to embarrass yourself.",
-        f"'{context}' called, it wants its dignity back."
-    ]
-    insult = random.choice(insults)
+    target = data.get('target', '')
+    tone = data.get('tone', '')
+    insult = generator.generate_insult(context=context, tone_prompt=tone, target=target)
     return jsonify({'insult': insult})
 
 if __name__ == '__main__':

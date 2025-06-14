@@ -89,7 +89,7 @@ const auth = {
         localStorage.removeItem('chatconnect_user');
         window.location.href = 'auth.html';
     },
-
+/*
     // UI Functions
     showLoginScreen() {
         this.loginScreen.classList.remove('hidden');
@@ -101,7 +101,7 @@ const auth = {
         if (this.mainScreen) this.mainScreen.classList.remove('hidden');
         if (this.currentUserSpan) this.currentUserSpan.textContent = localStorage.getItem('chatconnect_user') || '';
     },
-
+*/
     updateContactsList(users) {
         this.contactsList.innerHTML = '';
         users.forEach(user => {
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.querySelector('button[onclick="auth.logout()"]');
     if (logoutBtn) logoutBtn.onclick = () => auth.logout();
 });
-
+/*
 function sendMessage() {
     fetch(apiUrl, {
         method: 'POST',
@@ -139,3 +139,4 @@ function sendMessage() {
         fetchMessages(); // Immediately refresh messages
     });
 } 
+    */
