@@ -1,35 +1,3 @@
-// Simple in-memory database
-const db = {
-    users: [
-        // Default admin account
-        { username: 'admin', password: 'admin', isAdmin: true },
-        { username: 'user', password: 'user', isAdmin: false },
-        { username: 'user2', password: 'user2', isAdmin: false },
-        { username: 'user3', password: 'user3', isAdmin: false },
-        { username: 'user4', password: 'user4', isAdmin: false },
-        { username: 'user5', password: 'user5', isAdmin: false },
-        { username: 'user6', password: 'user6', isAdmin: false },
-        { username: 'user7', password: 'user7', isAdmin: false },
-        { username: 'user8', password: 'user8', isAdmin: false },
-        { username: 'user9', password: 'user9', isAdmin: false },
-        { username: 'user8', password: 'user8', isAdmin: false },
-        { username: 'user10', password: 'user10', isAdmin: false },
-        { username: 'user11', password: 'user11', isAdmin: false },
-        { username: 'user12', password: 'user12', isAdmin: false },
-        { username: 'user13', password: 'user13', isAdmin: false },
-        { username: 'user14', password: 'user14', isAdmin: false },
-        { username: 'user15', password: 'user15', isAdmin: false },
-        { username: 'user16', password: 'user16', isAdmin: false },
-    ],
-    messages: [],
-    onlineUsers: new Set()
-};
-
-// Current user
-let currentUser = null;
-let selectedContact = null;
-let isAdmin = false;
-
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const mainScreen = document.getElementById('main-screen');
@@ -60,6 +28,14 @@ function register() {
     alert('Registration successful! Please login.');
     usernameInput.value = '';
     passwordInput.value = '';
+
+    fetch('https://chatconnect-tug4.onrender.com/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => res.json())
+    .then(data => { /* handle response */ });
 }
 
 function login() {
@@ -71,19 +47,13 @@ function login() {
         return;
     }
 
-    const user = db.users.find(u => u.username === username && u.password === password);
-    if (!user) {
-        alert('Invalid username or password');
-        return;
-    }
-
-    currentUser = username;
-    isAdmin = user.isAdmin;
-    db.onlineUsers.add(username);
-    showMainScreen();
-    updateContactsList();
-    updateUIForAdmin();
-    updateUIForAllUsers();
+    fetch('https://chatconnect-tug4.onrender.com/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => res.json())
+    .then(data => { /* handle response */ });
 }
 
 function logout() {
@@ -164,31 +134,30 @@ function selectContact(username) {
 
 function displayMessages() {
     chatMessages.innerHTML = '';
-    const messages = db.messages.filter(
-        msg => (msg.from === currentUser && msg.to === selectedContact) ||
-               (msg.from === selectedContact && msg.to === currentUser)
-    );
+    fetch(`https://chatconnect-tug4.onrender.com/api/messages?user1=${currentUser}&user2=${selectedContact}`)
+      .then(res => res.json())
+      .then(messages => {
+        messages.forEach(msg => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${msg.from === currentUser ? 'sent' : 'received'}`;
+            
+            if (msg.image) {
+                const img = document.createElement('img');
+                img.src = msg.image;
+                img.style.maxWidth = '200px';
+                img.style.marginBottom = '5px';
+                messageDiv.appendChild(img);
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.textContent = msg.text;
+            messageDiv.appendChild(textDiv);
+            
+            chatMessages.appendChild(messageDiv);
+        });
 
-    messages.forEach(msg => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${msg.from === currentUser ? 'sent' : 'received'}`;
-        
-        if (msg.image) {
-            const img = document.createElement('img');
-            img.src = msg.image;
-            img.style.maxWidth = '200px';
-            img.style.marginBottom = '5px';
-            messageDiv.appendChild(img);
-        }
-        
-        const textDiv = document.createElement('div');
-        textDiv.textContent = msg.text;
-        messageDiv.appendChild(textDiv);
-        
-        chatMessages.appendChild(messageDiv);
-    });
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
 }
 
 function sendMessage() {
@@ -205,7 +174,12 @@ function sendMessage() {
         timestamp: new Date().toISOString()
     };
 
-    db.messages.push(message);
+    fetch('https://chatconnect-tug4.onrender.com/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: currentUser, to: selectedContact, text: text })
+    });
+
     messageInput.value = '';
     displayMessages();
 }
@@ -385,6 +359,8 @@ setInterval(() => {
 
 fetch('https://chatconnect-tug4.onrender.com/api/online_users')
   .then(res => res.json())
-  .then(onlineUsers => {
-    // Use this list to show who is online in your UI
-  }); 
+  .then(onlineUsers => { /* show online users */ });
+
+fetch('https://chatconnect-tug4.onrender.com/api/users')
+  .then(res => res.json())
+  .then(users => { /* render user list */ }); 

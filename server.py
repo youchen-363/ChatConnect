@@ -14,6 +14,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    last_seen = db.Column(db.DateTime)
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,6 +87,15 @@ def messages():
                 'timestamp': m.timestamp.isoformat()
             } for m in msgs
         ])
+
+@app.route('/api/admin/users')
+def admin_users():
+    users = User.query.all()
+    return jsonify([{
+        'username': u.username,
+        'is_admin': u.is_admin,
+        'last_seen': u.last_seen.isoformat() if u.last_seen else None
+    } for u in users])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 
