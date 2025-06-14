@@ -125,12 +125,5 @@ def logout():
         db.session.commit()
     return jsonify({'success': True})
 
-@app.route('/delete-db')
-def delete_db():
-    if os.path.exists('chatconnect.db'):
-        os.remove('chatconnect.db')
-        return "Database deleted."
-    return "Database not found."
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 
