@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>TTS Singer</title>
+</head>
+<body>
+    <h1>Text-to-Speech Singer</h1>
+
+    <label>Message to sing:</label><br/>
+    <textarea id="message" rows="3" cols="40">Happy Birthday to you</textarea><br/><br/>
+
+    <label>Rate (words per minute) (50-400):</label><br/>
+    <input type="number" id="rate" value="200" min="50" max="400"/><br/><br/>
+
+    <label>Volume (0.0 to 1.0):</label><br/>
+    <input type="number" id="volume" value="1.0" min="0" max="1" step="0.1"/><br/><br/>
+
+    <label>Voice:</label><br/>
+    <select id="voice">
+        {% for voice in voices %}
+        <option value="{{ voice.id }}">{{ voice.name }}</option>
+        {% endfor %}
+    </select><br/><br/>
+
+    <button onclick="sendSing()">Sing Message</button>
+
+    <p id="status"></p>
+
+<script>
+function sendSing() {
+    const message = document.getElementById('message').value;
+    const rate = parseInt(document.getElementById('rate').value);
+    const volume = parseFloat(document.getElementById('volume').value);
+    const voice_index = parseInt(document.getElementById('voice').value);
+
+    fetch('/sing', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message, rate, volume, voice_index })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('status').textContent = data.message;
+    })
+    .catch(err => {
+        document.getElementById('status').textContent = 'Error: ' + err;
+    });
+}
+</script>
+
+</body>
+</html>
