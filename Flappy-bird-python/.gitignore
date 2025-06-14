@@ -1,0 +1,23 @@
+# Environment files
+.env
+*.env
+!.env.example
+
+# Python-specific ignores
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+myenv/
+.venv/
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Miscellaneous
+.DS_Store
+Thumbs.db

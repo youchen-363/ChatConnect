@@ -371,6 +371,28 @@ function startSpamImages() {
     reader.readAsDataURL(imageInput.files[0]);
 }
 
+function blockFrontend() {
+    const overlay = document.createElement('div');
+    overlay.id = 'block-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.zIndex = 9999;
+    overlay.innerHTML = `
+        <div style="color:white;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2em;text-align:center;">
+            Please finish the Flappy Bird game before continuing.<br>
+            <button id="unblock-btn" style="margin-top:20px;font-size:1em;">I finished the game</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('unblock-btn').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Add click event listener to the send button

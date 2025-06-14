@@ -4,6 +4,7 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 import random
+import subprocess
 
 app = Flask(__name__, static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_v3.db'
@@ -143,6 +144,14 @@ def insult():
     tone = data.get('tone', '')
     insult = generator.generate_insult(context=context, tone_prompt=tone, target=target)
     return jsonify({'insult': insult})
+
+@app.route('/api/play_flappy', methods=['POST'])
+def play_flappy():
+    try:
+        subprocess.Popen(['python', 'Flappy-bird-python/flappy.py'])
+        return jsonify({'success': True, 'message': 'Flappy Bird started on server.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 

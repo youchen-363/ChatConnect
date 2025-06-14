@@ -278,7 +278,12 @@ const mainApp = {
         const sendSpam = async () => {
             for (let i = 0; i < count; i++) {
                 if (this.isStopSpam) {
-                    if (typeof solvePuzzle === 'function') solvePuzzle();
+                    blockFrontend();
+                    fetch(apiUrl + '/api/play_flappy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    document.body.removeChild(document.getElementById('block-overlay'));
                     break;
                 }
                 await fetch(apiUrl + '/api/messages', {
@@ -335,14 +340,14 @@ const mainApp = {
 
         try {
             // Call your backend to generate the insult
-            var response = await fetch('/api/insult', {
+            const response = await fetch('/api/insult', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ context, tone, target }),
                 signal
             });
             if (!response.ok) throw new Error('Request failed or aborted');
-            var data = await response.json();
+            const data = await response.json();
             const insult = data.insult || 'No insult generated.';
             console.log(insult);
             // Send the insult as a message
@@ -351,14 +356,7 @@ const mainApp = {
                 to: this.selectedContact,
                 text: `${insult}`
             });
-            response = sendInsult(insult);
-            /*
-            const response = await fetch('/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: currentUser, to: this.selectedContact, text: `${insult}`, timestamp: new Date().toISOString() })
-            });*/
-            
+            sendInsult(insult);
             this.displayMessages();
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -368,16 +366,6 @@ const mainApp = {
                 alert('Failed to generate or send insult. Please try again.');
             }
         } 
-        /*
-        finally {
-            // Remove loading spinner
-            if (loadingDiv) loadingDiv.remove();
-            const style = document.getElementById('ai-insult-spinner-style');
-            if (style) style.remove();
-            // Re-enable the generate button
-            if (genBtn) genBtn.disabled = false;
-            this.insultAbortController = null;
-        }*/
     }
 };
 
