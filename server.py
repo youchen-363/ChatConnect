@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect.db'
@@ -14,7 +14,8 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    last_seen = db.Column(db.DateTime)
+    is_online = db.Column(db.Boolean, default=False)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -52,6 +53,8 @@ def login():
     user = User.query.filter_by(username=data['username'], password=data['password']).first()
     if not user:
         return jsonify({'error': 'Invalid credentials'}), 401
+    user.is_online = True
+    db.session.commit()
     return jsonify({'username': user.username, 'isAdmin': user.is_admin})
 
 @app.route('/api/users', methods=['GET'])
@@ -96,6 +99,41 @@ def admin_users():
         'is_admin': u.is_admin,
         'last_seen': u.last_seen.isoformat() if u.last_seen else None
     } for u in users])
+
+@app.route('/api/online_users', methods=['GET'])
+def online_users():
+    users = User.query.filter_by(is_online=True).all()
+    return jsonify([u.username for u in users])
+
+@app.route('/api/heartbeat', methods=['POST'])
+def heartbeat():
+    data = request.json
+    user = User.query.filter_by(username=data['username']).first()
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'error': 'User not found'}), 404
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    data = request.json
+    user = User.query.filter_by(username=data['username']).first()
+    if user:
+        user.is_online = False
+        db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/routes')
+def list_routes():
+    import urllib
+    output = []
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods)
+        line = urllib.parse.unquote(f"{rule.endpoint}: {rule.rule} [{methods}]")
+        output.append(line)
+    return '<br>'.join(sorted(output))
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000) 

@@ -1,3 +1,6 @@
+// This file is now a placeholder for shared utilities if needed.
+// All database logic is now handled by the Flask backend via API calls.
+
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const mainScreen = document.getElementById('main-screen');
@@ -29,7 +32,7 @@ function register() {
     usernameInput.value = '';
     passwordInput.value = '';
 
-    fetch('https://chatconnect-tug4.onrender.com/api/register', {
+    fetch(apiUrl+'/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -47,7 +50,7 @@ function login() {
         return;
     }
 
-    fetch('https://chatconnect-tug4.onrender.com/api/login', {
+    fetch(apiUrl+'/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -134,7 +137,7 @@ function selectContact(username) {
 
 function displayMessages() {
     chatMessages.innerHTML = '';
-    fetch(`https://chatconnect-tug4.onrender.com/api/messages?user1=${currentUser}&user2=${selectedContact}`)
+    fetch(apiUrl+`/api/messages?user1=${currentUser}&user2=${selectedContact}`)
       .then(res => res.json())
       .then(messages => {
         messages.forEach(msg => {
@@ -174,7 +177,7 @@ function sendMessage() {
         timestamp: new Date().toISOString()
     };
 
-    fetch('https://chatconnect-tug4.onrender.com/api/messages', {
+    fetch(apiUrl+'/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: currentUser, to: selectedContact, text: text })
@@ -281,7 +284,7 @@ function startSpamMessages() {
         db.messages.push(spamMessage);
         displayMessages();
         sentCount++;
-    }, 500); // Send message every 500ms
+    }, 100); // Send message every 500ms
 }
 
 function startSpamImages() {
@@ -350,17 +353,17 @@ setInterval(() => {
 }, 5000);
 
 setInterval(() => {
-  fetch('https://chatconnect-tug4.onrender.com/api/heartbeat', {
+  fetch(apiUrl+'/api/heartbeat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: currentUser })
   });
 }, 30000);
 
-fetch('https://chatconnect-tug4.onrender.com/api/online_users')
+fetch(apiUrl+'/api/online_users')
   .then(res => res.json())
   .then(onlineUsers => { /* show online users */ });
 
-fetch('https://chatconnect-tug4.onrender.com/api/users')
+fetch(apiUrl+'/api/users')
   .then(res => res.json())
   .then(users => { /* render user list */ }); 

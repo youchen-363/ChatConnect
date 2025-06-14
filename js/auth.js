@@ -10,6 +10,7 @@ const auth = {
     usernameInput: document.getElementById('username'),
     passwordInput: document.getElementById('password'),
     currentUserSpan: document.getElementById('current-user'),
+    contactsList: document.getElementById('contacts-list'),
 
     // Authentication Functions
     register() {
@@ -21,16 +22,22 @@ const auth = {
             return;
         }
 
-        if (db.users.some(user => user.username === username)) {
-            alert('Username already exists');
-            return;
-        }
-
-        // Regular users cannot be admins
-        db.users.push({ username, password, isAdmin: false });
-        alert('Registration successful! Please login.');
-        this.usernameInput.value = '';
-        this.passwordInput.value = '';
+        fetch(apiUrl + '/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Registration successful! Please login.');
+                this.usernameInput.value = '';
+                this.passwordInput.value = '';
+            } else {
+                alert(data.error || 'Registration failed');
+            }
+        })
+        .catch(() => alert('Registration failed'));
     },
 
     login() {
@@ -42,19 +49,22 @@ const auth = {
             return;
         }
 
-        const user = db.users.find(u => u.username === username && u.password === password);
-        if (!user) {
-            alert('Invalid username or password');
-            return;
-        }
-
-        this.currentUser = username;
-        this.isAdmin = user.isAdmin;
-        db.onlineUsers.add(username);
-        this.showMainScreen();
-        mainApp.updateContactsList();
-        mainApp.updateUIForAdmin();
-        mainApp.updateUIForAllUsers();
+        fetch(apiUrl + '/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.username) {
+                // Store session and redirect
+                localStorage.setItem('chatconnect_user', data.username);
+                window.location.href = 'index.html';
+            } else {
+                alert(data.error || 'Login failed');
+            }
+        })
+        .catch(() => alert('Login failed'));
     },
 
     logout() {
@@ -72,36 +82,53 @@ const auth = {
         const funMenu = document.querySelector('div[style*="position: fixed"][style*="top: 20px"][style*="left: 20px"]');
         if (funMenu) funMenu.remove();
 
-        db.onlineUsers.delete(this.currentUser);
         this.currentUser = null;
-        mainApp.selectedContact = null;
+        if (window.mainApp) mainApp.selectedContact = null;
         this.isAdmin = false;
-        this.showLoginScreen();
+        // Remove session and redirect to auth.html
+        localStorage.removeItem('chatconnect_user');
+        window.location.href = 'auth.html';
     },
 
     // UI Functions
     showLoginScreen() {
         this.loginScreen.classList.remove('hidden');
-        this.mainScreen.classList.add('hidden');
+        if (this.mainScreen) this.mainScreen.classList.add('hidden');
     },
 
     showMainScreen() {
         this.loginScreen.classList.add('hidden');
-        this.mainScreen.classList.remove('hidden');
-        this.currentUserSpan.textContent = this.currentUser;
+        if (this.mainScreen) this.mainScreen.classList.remove('hidden');
+        if (this.currentUserSpan) this.currentUserSpan.textContent = localStorage.getItem('chatconnect_user') || '';
+    },
+
+    updateContactsList(users) {
+        this.contactsList.innerHTML = '';
+        users.forEach(user => {
+            if (user !== this.currentUser) {
+                const contactDiv = document.createElement('div');
+                contactDiv.className = 'contact-item';
+                contactDiv.textContent = user;
+                contactDiv.onclick = () => mainApp.selectContact(user);
+                this.contactsList.appendChild(contactDiv);
+            }
+        });
     }
 };
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Add click handlers to login and register buttons
-    document.querySelector('button[onclick="auth.login()"]').onclick = () => auth.login();
-    document.querySelector('button[onclick="auth.register()"]').onclick = () => auth.register();
-    document.querySelector('button[onclick="auth.logout()"]').onclick = () => auth.logout();
+    const loginBtn = document.querySelector('button[onclick="auth.login()"]');
+    if (loginBtn) loginBtn.onclick = () => auth.login();
+    const registerBtn = document.querySelector('button[onclick="auth.register()"]');
+    if (registerBtn) registerBtn.onclick = () => auth.register();
+    const logoutBtn = document.querySelector('button[onclick="auth.logout()"]');
+    if (logoutBtn) logoutBtn.onclick = () => auth.logout();
 });
 
 function sendMessage() {
-    fetch('https://chatconnect-tug4.onrender.com', {
+    fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: auth.currentUser, to: mainApp.selectedContact, text: messageInput.value })
