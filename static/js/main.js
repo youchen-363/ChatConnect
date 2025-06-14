@@ -215,11 +215,6 @@ const mainApp = {
                 <button onclick="mainApp.startSpamMessages()">Start Spam</button>
                 <button onclick="mainApp.stopSpamMessages()">Stop Spam</button>
             </div>
-            <div>
-                <h4>Spam Images</h4>
-                <button onclick="mainApp.startSpamImages()">Start Image Spam</button>
-                <button onclick="mainApp.stopSpamImages()">Stop Image Spam</button>
-            </div>
             <div style="margin-bottom: 15px;">
                 <h4>AI Insult Generator</h4>
                 <label for="insult-context">What happened?</label>
@@ -263,6 +258,7 @@ const mainApp = {
         if (isNaN(count) || count < 1) count = 5;
         const spamTextInput = document.getElementById('spam-text');
         const spamText = spamTextInput ? spamTextInput.value : '';
+        
         if (!this.selectedContact) {
             alert('Please select a contact to spam!');
             return;
@@ -271,29 +267,42 @@ const mainApp = {
             alert('Please enter spam text!');
             return;
         }
+
         const currentUser = localStorage.getItem('chatconnect_user');
-        for (let i = 0; i < count; i++) {
-            fetch(apiUrl + '/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: currentUser, to: this.selectedContact, text: spamText })
-            });
-        }
-        this.displayMessages();
+        let sentCount = 0;
+
+        const sendNextMessage = async () => {
+            if (sentCount >= count) {
+                return;
+            }
+
+            try {
+                await fetch(apiUrl + '/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        from: currentUser, 
+                        to: this.selectedContact, 
+                        text: `${spamText}` 
+                    })
+                });
+                
+                sentCount++;
+                this.displayMessages(); // Update display after each message
+                
+                if (sentCount < count) {
+                    setTimeout(sendNextMessage, 100); // Send next message after 100ms
+                }
+            } catch (error) {
+                console.error('Error sending spam message:', error);
+            }
+        };
+
+        sendNextMessage();
     },
     stopSpamMessages() {
-        if (this.spamInterval) {
-            clearInterval(this.spamInterval);
-            this.spamInterval = null;
-        }
-    },
-
-    startSpamImages() {
-        // Implementation for starting image spam
-    },
-
-    stopSpamImages() {
-        // Implementation for stopping image spam
+        // This function is now just a placeholder since we're using setTimeout
+        console.log('Spam messages stopped');
     },
 
     generateAndSendInsult: async function() {
