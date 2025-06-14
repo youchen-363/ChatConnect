@@ -27,7 +27,7 @@ with app.app_context():
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return "ChatConnect API is running!"
 
 @app.route('/<path:path>')
 def static_proxy(path):

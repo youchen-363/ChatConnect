@@ -107,7 +107,7 @@ const mainApp = {
         this.messageInput.value = '';
         this.displayMessages();
 
-        fetch('https://YOUR-BACKEND-URL/api/messages', {
+        fetch('https://chatconnect-tug4.onrender.com/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ from: auth.currentUser, to: this.selectedContact, text })
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('button[onclick="sendMessage()"]').onclick = () => mainApp.sendMessage();
 });
 
-fetch('https://YOUR-BACKEND-URL/api/login', {
+fetch('https://chatconnect-tug4.onrender.com/api/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ username, password })
@@ -283,7 +283,7 @@ fetch('https://YOUR-BACKEND-URL/api/login', {
   }
 });
 
-fetch('https://YOUR-BACKEND-URL/api/register', {
+fetch('https://chatconnect-tug4.onrender.com/api/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ username, password })
@@ -294,13 +294,13 @@ fetch('https://YOUR-BACKEND-URL/api/register', {
   else alert('Registration successful!');
 });
 
-fetch('https://YOUR-BACKEND-URL/api/users')
+fetch('https://chatconnect-tug4.onrender.com/api/users')
   .then(res => res.json())
   .then(users => {
     // Render user list
   });
 
-fetch(`https://YOUR-BACKEND-URL/api/messages?user1=${auth.currentUser}&user2=${mainApp.selectedContact}`)
+fetch(`https://chatconnect-tug4.onrender.com/api/messages?user1=${auth.currentUser}&user2=${mainApp.selectedContact}`)
   .then(res => res.json())
   .then(messages => {
     // Render messages

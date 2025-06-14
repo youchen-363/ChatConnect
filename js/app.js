@@ -373,4 +373,18 @@ setInterval(() => {
     if (currentUser) {
         updateContactsList();
     }
-}, 5000); 
+}, 5000);
+
+setInterval(() => {
+  fetch('https://chatconnect-tug4.onrender.com/api/heartbeat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: currentUser })
+  });
+}, 30000);
+
+fetch('https://chatconnect-tug4.onrender.com/api/online_users')
+  .then(res => res.json())
+  .then(onlineUsers => {
+    // Use this list to show who is online in your UI
+  }); 
