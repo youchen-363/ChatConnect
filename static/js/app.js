@@ -156,11 +156,25 @@ function updateContactsList() {
         });
 }
 
-function selectContact(username) {
-    localStorage.setItem('chatconnect_selectedContact', username);
-    updateChatHeader();
-    displayMessages();
-    updateContactsList();
+function updateChatHeader() {
+    // Update the chat header bar
+    const chatHeader = document.getElementById('chat-header');
+    console.log('Selected contact:', this.selectedContact);
+    if (chatHeader) {
+        if (this.selectedContact) {
+            chatHeader.textContent = this.selectedContact;
+            chatHeader.style.display = 'flex';
+            chatHeader.style.alignItems = 'center';
+            chatHeader.style.padding = '12px 16px';
+            chatHeader.style.background = '#f0f0f0';
+            chatHeader.style.borderBottom = '1px solid #ddd';
+            chatHeader.style.fontWeight = 'bold';
+            chatHeader.style.fontSize = '1.1em';
+        } else {
+            chatHeader.textContent = '';
+            chatHeader.style.display = 'none';
+        }
+    }
 }
 
 function displayMessages() {
@@ -188,6 +202,13 @@ function displayMessages() {
             });
             chatMessages.scrollTop = chatMessages.scrollHeight;
         });
+}
+
+function selectContact(username) {
+    localStorage.setItem('chatconnect_selectedContact', username);
+    updateChatHeader();
+    displayMessages();
+    updateContactsList();
 }
 
 function sendInsult(text) {
