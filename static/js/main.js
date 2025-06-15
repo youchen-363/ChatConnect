@@ -333,6 +333,8 @@ const mainApp = {
             return;
         }
         
+        console.log('Generating insult: ', context, tone, target);
+
         // Setup AbortController
         this.insultAbortController = new AbortController();
         const signal = this.insultAbortController.signal;

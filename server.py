@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 import os
 import random
 import subprocess
+from ai_insult import InsultGenerator
 
+generator = InsultGenerator()
 app = Flask(__name__, static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chatconnect_v3.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
