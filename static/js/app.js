@@ -159,6 +159,7 @@ function updateContactsList() {
 function updateChatHeader() {
     // Update the chat header bar
     const chatHeader = document.getElementById('chat-header');
+    this.selectedContact = localStorage.getItem('chatconnect_selectedContact');
     console.log('Selected contact:', this.selectedContact);
     if (chatHeader) {
         if (this.selectedContact) {
@@ -208,7 +209,9 @@ function selectContact(username) {
     localStorage.setItem('chatconnect_selectedContact', username);
     updateChatHeader();
     displayMessages();
-    updateContactsList();
+    fetchAllUsers().then(users => {
+        updateContactsList(users);
+    });
 }
 
 function sendInsult(text) {
@@ -438,10 +441,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Simulate online status changes (for demo purposes)
 setInterval(() => {
     if (localStorage.getItem('chatconnect_user')) {
-        updateContactsList();
+        console.log('Updating contacts list : ', fetchAllUsers());
+        updateContactsList(fetchAllUsers());
     }
 }, 10000);
 
 fetch(apiUrl+'/api/users')
   .then(res => res.json())
-  .then(users => { /* render user list */ }); 
+  .then(users => { /* render user list */ });
+
+function fetchAllUsers() {
+    return fetch(apiUrl + '/api/users')
+        .then(res => res.json());
+} 

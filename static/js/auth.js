@@ -21,14 +21,9 @@ const auth = {
             alert('Please enter both username and password');
             return;
         }
-
-        fetch(apiUrl + '/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(res => res.json())
-        .then(data => {
+        console.log('Registering user: ', username, password);
+        console.log('Registering user: ', fetchAllUsers());
+        registerUser(username, password).then(data => {
             console.log(data);
             if (data.success) {
                 alert('Registration successful! Please login.');

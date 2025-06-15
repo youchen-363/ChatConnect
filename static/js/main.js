@@ -12,34 +12,33 @@ const mainApp = {
     chatMessages: document.getElementById('chat-messages'),
     messageInput: document.getElementById('message-text'),
 
-    updateContactsList() {
+    updateContactsList(users) {
         contactsList.innerHTML = '';
         const isAdmin = localStorage.getItem('chatconnect_isAdmin') === 'true';
         const selectedContact = localStorage.getItem('chatconnect_selectedContact');
-        fetch(apiUrl + '/api/users')
-            .then(res => res.json())
-            .then(users => {
-                users.forEach(username => {
-                    if (isAdmin || username !== 'admin') {
-                        const contactDiv = document.createElement('div');
-                        contactDiv.className = 'contact-item';
-                        if (username === selectedContact) {
-                            contactDiv.classList.add('selected');
-                        }
-                        contactDiv.textContent = username;
-                        contactDiv.onclick = () => this.selectContact(username);
-                        contactsList.appendChild(contactDiv);
-                    }
-                });
-            });
+        users.forEach(username => {
+            if (isAdmin || username !== 'admin') {
+                const contactDiv = document.createElement('div');
+                contactDiv.className = 'contact-item';
+                if (username === selectedContact) {
+                    contactDiv.classList.add('selected');
+                }
+                contactDiv.textContent = username;
+                contactDiv.onclick = () => this.selectContact(username);
+                contactsList.appendChild(contactDiv);
+            }
+        });
     },
 
     selectContact(username) {
         this.selectedContact = username;
         localStorage.setItem('chatconnect_selectedContact', username);
+        console.log('Selected contact:', localStorage.getItem('chatconnect_selectedContact'));
         this.updateChatHeader();
         this.displayMessages();
-        this.updateContactsList();
+        fetchAllUsers().then(users => {
+            this.updateContactsList(users);
+        });
     },
 
     updateChatHeader() {
@@ -383,18 +382,21 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBar.style.boxSizing = 'border-box';
         contactsContainer.insertBefore(searchBar, contactsContainer.firstChild);
         searchBar.addEventListener('input', () => {
-            // Fetch users and filter
-            fetch(apiUrl + '/api/users')
-                .then(res => res.json())
-                .then(users => {
-                    mainApp.updateContactsList();
-                });
+            const searchValue = searchBar.value.trim().toLowerCase();
+            fetchAllUsers().then(users => {
+                const filteredUsers = users.filter(username =>
+                    username.toLowerCase().includes(searchValue)
+                );
+                mainApp.updateContactsList(filteredUsers);
+            });
         });
     }
     // Add click handler to send message button
     const sendBtn = document.querySelector('button[onclick="mainApp.sendMessage()"]');
     if (sendBtn) sendBtn.onclick = () => mainApp.sendMessage();
-    mainApp.updateContactsList();
+    fetchAllUsers().then(users => {
+        mainApp.updateContactsList(users);
+    });
     mainApp.updateUIForAdmin();
     mainApp.updateUIForAllUsers();
     // Restore selected contact if exists
@@ -406,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUserSpan.textContent = localStorage.getItem('chatconnect_user') || '';
     }
 });
-/*
+
 fetch(apiUrl+'/api/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -447,4 +449,4 @@ fetch(apiUrl+`/api/messages?user1=${auth.currentUser}&user2=${mainApp.selectedCo
   .then(messages => {
     // Render messages
   }); 
-  */
+  

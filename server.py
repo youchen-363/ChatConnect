@@ -59,25 +59,19 @@ def register():
     db.session.add(user)
     db.session.commit()
     return jsonify({
-        'success': True,
-        'message': {
-        'id': msg.id,
-        'from': msg.from_user,
-        'to': msg.to_user,
-        'text': msg.text,
-        'timestamp': msg.timestamp.isoformat()
-        }
+        'success': True
         })
 
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-    user = User.query.filter_by(username=data['username'], password=data['password']).first()
+    user = User.query.filter_by(username=data['username'], password=data['password']).one_or_none()    
     if not user:
         return jsonify({'error': 'Invalid credentials'}), 401
-    user.is_online = True
-    db.session.commit()
-    return jsonify({'username': user.username, 'isAdmin': user.is_admin})
+    else:
+        user.is_online = True
+        db.session.commit()
+        return jsonify({'username': user.username, 'isAdmin': user.is_admin})
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
